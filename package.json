@@ -1,6 +1,6 @@
 {
   "name": "gitlo",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CLI tool to backup all your GitHub repositories locally",
   "main": "dist/index.js",
   "bin": {
@@ -16,7 +16,9 @@
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "clean": "rm -rf dist node_modules",
-    "prepublishOnly": "pnpm run build"
+    "prepublishOnly": "pnpm run build",
+    "link": "pnpm run build && pnpm link --global",
+    "unlink": "pnpm unlink --global && rm -f $(which gitlo 2>/dev/null || echo /dev/null)"
   },
   "keywords": [
     "github",
@@ -34,7 +36,7 @@
   "bugs": {
     "url": "https://github.com/dropocol/gitlo/issues"
   },
-  "packageManager": "pnpm@9.10.0",
+  "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=18.0.0"
   },

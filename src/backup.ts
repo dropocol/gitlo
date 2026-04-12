@@ -26,10 +26,33 @@ export async function cloneOrUpdateRepo(
       if (options.updateExisting) {
         repoSpinner.text = `${progress} Updating ${repo.name}...`;
         const git = simpleGit(repoPath);
-        await git.pull('origin', 'main').catch(async () => {
-          // Try master if main fails
-          await git.pull('origin', 'master');
-        });
+
+        // For private repos with HTTPS, temporarily use authenticated URL
+        const originalUrlResult = await git.remote(['get-url', 'origin']);
+        const originalUrl = typeof originalUrlResult === 'string'
+          ? originalUrlResult.trim().replace(/[\n\r\t]/g, '')
+          : '';
+
+        let needsRestore = false;
+
+        if (options.token && options.method === 'https' && originalUrl) {
+          const authenticatedUrl = repo.cloneUrl.replace('https://', `https://${options.token}@`);
+          await git.remote(['set-url', 'origin', authenticatedUrl.trim()]);
+          needsRestore = true;
+        }
+
+        try {
+          await git.pull('origin', 'main').catch(async () => {
+            // Try master if main fails
+            await git.pull('origin', 'master');
+          });
+        } finally {
+          // Restore original URL without token
+          if (needsRestore && originalUrl) {
+            await git.remote(['set-url', 'origin', originalUrl]);
+          }
+        }
+
         repoSpinner.succeed(`${progress} ${chalk.green('✓')} Updated ${chalk.white(repo.name)}`);
         return { status: 'updated' };
       } else {
@@ -38,9 +61,23 @@ export async function cloneOrUpdateRepo(
       }
     } else {
       repoSpinner.text = `${progress} Cloning ${repo.name}...`;
-      const cloneUrl = options.method === 'ssh' ? repo.sshUrl : repo.cloneUrl;
+      let cloneUrl = options.method === 'ssh' ? repo.sshUrl : repo.cloneUrl;
+
+      // Inject token into HTTPS URL for private repos
+      if (options.token && options.method === 'https') {
+        cloneUrl = cloneUrl.replace('https://', `https://${options.token}@`);
+      }
+
       const parentDir = path.dirname(repoPath);
       await simpleGit(parentDir).clone(cloneUrl, repoPath);
+
+      // Remove token from git config after clone for security
+      if (options.token && options.method === 'https') {
+        const git = simpleGit(repoPath);
+        const cleanUrl = cloneUrl.replace(/https:\/\/[^@]+@/, 'https://').trim();
+        await git.remote(['set-url', 'origin', cleanUrl]);
+      }
+
       repoSpinner.succeed(`${progress} ${chalk.green('✓')} Cloned ${chalk.white(repo.name)}`);
       return { status: 'cloned' };
     }

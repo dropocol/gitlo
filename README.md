@@ -34,7 +34,7 @@ GitHub accounts can be deleted, suspended, or compromised. This tool creates a l
 
 ## 📦 Installation
 
-### Quick Install (npm - Recommended)
+### Quick Install (npm)
 
 ```bash
 npm install -g gitlo
@@ -61,14 +61,18 @@ yarn global add gitlo
 # Clone and build
 git clone https://github.com/dropocol/gitlo.git
 cd gitlo
-pnpm install
-pnpm run build
+npm install
+npm run build
 
 # Link globally
-pnpm link --global
+npm link --global
 ```
 
 ## Getting a GitHub Token
+
+gitlo supports two types of GitHub personal access tokens:
+
+### Option 1: Classic Token (Recommended)
 
 1. Go to [https://github.com/settings/tokens](https://github.com/settings/tokens)
 2. Click "Generate new token (classic)"
@@ -76,6 +80,19 @@ pnpm link --global
   - `repo` - Full control of private repositories
   - `read:user` - Read user profile data
 4. Generate and copy the token
+
+### Option 2: Fine-Grained Token
+
+1. Go to [https://github.com/settings/tokens](https://github.com/settings/tokens)
+2. Click "Generate new token" → "Fine-grained token"
+3. Configure permissions:
+  - **Repository permissions**: 
+    - Contents: **Read and write** (required for cloning)
+    - Metadata: **Read-only** (required for repository access)
+  - **Account permissions**:
+    - User profile: **Read-only** (optional, for user info)
+4. Select the repositories to access (or "All repositories")
+5. Generate and copy the token
 
 ## 🚀 Quick Start
 
@@ -229,7 +246,7 @@ gitlo config remove output-dir
 Schedule automatic backups with cron.
 
 ```bash
-# Weekly on Sunday at 2 AM (default)
+# Weekly on Sunday at 2 AM (default, updates existing repos)
 gitlo schedule setup
 
 # Daily at 3 AM
@@ -241,8 +258,8 @@ gitlo schedule setup --frequency weekly --day 1
 # Monthly on the 1st at 2 AM
 gitlo schedule setup --frequency monthly
 
-# Hourly (only updates existing repos)
-gitlo schedule setup --frequency hourly --update
+# Full backup (clone all repos, don't just update)
+gitlo schedule setup --full
 ```
 
 #### `gitlo schedule list`
@@ -332,19 +349,19 @@ If you want to contribute or modify the code:
 
 ```bash
 # Install all dependencies (including dev)
-pnpm install
+npm install
 
 # Build TypeScript to JavaScript
-pnpm run build
+npm run build
 
 # Run in development mode
-pnpm run dev
+npm run dev
 
 # Clean build artifacts
-pnpm run clean
+npm run clean
 
 # Test local changes globally
-pnpm link --global
+npm link --global
 ```
 
 ### Publishing
@@ -353,9 +370,6 @@ When you're ready to publish to npm:
 
 ```bash
 # The prepublishOnly script automatically builds before publishing
-pnpm publish
-
-# Or publish to npm
 npm publish
 ```
 
@@ -387,6 +401,7 @@ your-backup-directory/
 
 ```bash
 # Setup weekly backups (default: Sundays at 2 AM)
+# By default, updates existing repos (faster)
 gitlo schedule setup
 
 # Setup daily backups at 3 AM
@@ -395,8 +410,8 @@ gitlo schedule setup --frequency daily --time 03:00
 # Setup weekly on Mondays at 2 AM
 gitlo schedule setup --frequency weekly --day 1 --time 02:00
 
-# Only update existing repos (faster)
-gitlo schedule setup --update
+# Full backup (clone all repos including new ones)
+gitlo schedule setup --full
 
 # View scheduled jobs
 gitlo schedule list
@@ -410,8 +425,10 @@ gitlo schedule remove
 - `-f, --frequency <freq>` - hourly, daily, weekly, monthly (default: weekly)
 - `-t, --time <time>` - Time in HH:MM format (default: 02:00)
 - `-d, --day <day>` - Day of week 0-6 for weekly (0=Sunday, default: 0)
-- `-u, --update` - Only update existing repos, don't clone new ones
+- `--full` - Clone all repos instead of just updating existing (default: update)
 - `-l, --log <path>` - Log file path (default: ~/.gitlo/backup.log)
+
+**Note:** By default, scheduled backups update existing repositories for faster execution. Use `--full` to clone all repositories including new ones.
 
 ### Manual Cron Setup (Advanced)
 
@@ -434,7 +451,7 @@ npm install -g gitlo && gitlo config set token YOUR_TOKEN && gitlo
 ### One-liner for Development Setup
 
 ```bash
-cd ~ && git clone https://github.com/dropocol/gitlo.git && cd gitlo && pnpm install && pnpm run build && pnpm link --global && echo "Setup complete. Run: gitlo config set token YOUR_TOKEN"
+cd ~ && git clone https://github.com/dropocol/gitlo.git && cd gitlo && npm install && npm run build && npm link --global && echo "Setup complete. Run: gitlo config set token YOUR_TOKEN"
 ```
 
 ## Security Notes

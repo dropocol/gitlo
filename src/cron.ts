@@ -37,16 +37,21 @@ export function getCronExpression(schedule: CronSchedule): string {
 }
 
 export function getCronCommand(updateOnly = false): string {
-  const config = readConfig();
-  const gitloPath = execSync('which gitlo', { encoding: 'utf-8' }).trim() || 'gitlo';
-  
-  let command = `${gitloPath}`;
-  
+  // Use full path to node and the built JS file for cron compatibility
+  // Cron has limited PATH, so we can't rely on wrapper scripts
+  const nodePath = execSync('which node', { encoding: 'utf-8' }).trim();
+
+  // Get the path to dist/index.js from the current file location
+  // After compilation, this file is at dist/cron.js, so we need index.js in the same dir
+  const scriptPath = path.join(path.dirname(__filename), 'index.js');
+
+  let command = `${nodePath} ${scriptPath}`;
+
   // Add update flag if specified
   if (updateOnly) {
     command += ' --update';
   }
-  
+
   return command;
 }
 

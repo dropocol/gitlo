@@ -270,25 +270,25 @@ export function createScheduleCommands(program: Command): void {
     .option('-f, --frequency <freq>', 'Backup frequency: hourly, daily, weekly, monthly', 'weekly')
     .option('-t, --time <time>', 'Time for daily/weekly/monthly (HH:MM format)', '02:00')
     .option('-d, --day <day>', 'Day of week for weekly (0-6, 0=Sunday)', '0')
-    .option('-u, --update', 'Only update existing repos (faster)', false)
+    .option('--full', 'Clone all repos instead of updating existing (default: update existing)', false)
     .option('-l, --log <path>', 'Log file path', '~/.gitlo/backup.log')
     .action((cmdOptions) => {
       const { addCronJob, getCronExpression, formatSchedule } = require('./cron.js');
-      
+
       const schedule = {
         frequency: cmdOptions.frequency,
         time: cmdOptions.time,
         dayOfWeek: parseInt(cmdOptions.day),
-        updateOnly: cmdOptions.update,
+        updateOnly: !cmdOptions.full,
       };
-      
+
       const logFile = cmdOptions.log.replace(/^~/, require('os').homedir());
-      
+
       console.log(chalk.bold.blue('\n📅 Schedule Automatic Backups\n'));
       console.log(chalk.gray(`Frequency: ${formatSchedule(schedule)}`));
-      console.log(chalk.gray(`Update only: ${cmdOptions.update ? 'Yes' : 'No (full backup)'}`));
+      console.log(chalk.gray(`Update only: ${!cmdOptions.full ? 'Yes (default)' : 'No (full backup)'}`));
       console.log(chalk.gray(`Log file: ${logFile}\n`));
-      
+
       if (addCronJob(schedule, logFile)) {
         console.log(chalk.green('✓ Automatic backup scheduled successfully!'));
         console.log(chalk.gray(`Cron expression: ${getCronExpression(schedule)}`));
