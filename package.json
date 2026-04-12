@@ -1,0 +1,55 @@
+{
+  "name": "gitlo",
+  "version": "1.0.0",
+  "description": "CLI tool to backup all your GitHub repositories locally",
+  "main": "dist/index.js",
+  "bin": {
+    "gitlo": "dist/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "clean": "rm -rf dist node_modules",
+    "prepublishOnly": "pnpm run build"
+  },
+  "keywords": [
+    "github",
+    "backup",
+    "cli",
+    "git"
+  ],
+  "author": "Zeeshan Khan <dropocol@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/dropocol/gitlo#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dropocol/gitlo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dropocol/gitlo/issues"
+  },
+  "packageManager": "pnpm@9.10.0",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.0.2",
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "conf": "^10.2.0",
+    "ora": "^5.4.1",
+    "simple-git": "^3.20.0"
+  },
+  "devDependencies": {
+    "@types/conf": "^3.0.0",
+    "@types/node": "^25.6.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.2"
+  }
+}

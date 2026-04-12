@@ -1,0 +1,41 @@
+# Source files
+src/
+tsconfig.json
+
+# Development
+node_modules/
+*.log
+.env
+.DS_Store
+
+# Build artifacts (dist is included via files array in package.json)
+# dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+*.test.ts
+*.spec.ts
+coverage/
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+.travis.yml
+.gitlab-ci.yml
+
+# Documentation assets (keep README and LICENSE)
+assets/
+docs/
+
+# Config files not needed in package
+.eslintrc
+.prettierrc
+jest.config.js
