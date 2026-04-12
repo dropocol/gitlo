@@ -1,6 +1,6 @@
 <div align="center">
 
-[![gitlo](https://raw.githubusercontent.com/dropocol/gitlo/main/assets/banner.png)](https://github.com/dropocol/gitlo)
+[![gitlo](https://raw.githubusercontent.com/dropocol/gitlo/main/banner.png)](https://github.com/dropocol/gitlo)
 
 # 🗄️ gitlo
 
