@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/node/v/gitlo)](https://nodejs.org)
 
-**Backup all your GitHub repositories locally with one command.**
+**Backup your GitHub repos. Never lose your code.**
 
 Never lose your code to account deletions, suspensions, or unexpected issues.
 
