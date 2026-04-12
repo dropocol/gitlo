@@ -1,5 +1,10 @@
 <div align="center">
 
+<!-- Banner Image - Replace with your custom banner -->
+<!-- ![gitlo-banner](https://raw.githubusercontent.com/dropocol/gitlo/main/assets/banner.png) -->
+
+[![gitlo](https://raw.githubusercontent.com/dropocol/gitlo/main/assets/banner.png)](https://github.com/dropocol/gitlo)
+
 # 🗄️ gitlo
 
 [![npm version](https://img.shields.io/npm/v/gitlo.svg)](https://www.npmjs.com/package/gitlo)
@@ -490,6 +495,42 @@ ssh-add ~/.ssh/id_ed25519
 ### Rate Limiting
 
 The tool handles pagination automatically. If you have 1000+ repos, it may take a while.
+
+## 🎨 Adding a Banner Image
+
+To add a custom banner to this README:
+
+1. **Create your banner** (1200×400px recommended)
+   - Use tools like Canva, Figma, or Photoshop
+   - Include: "gitlo" name, 🗄️ emoji/icon, tagline
+   - Dark background with blue/green accents
+
+2. **Save banner as:**
+   - `assets/banner.png` (recommended format)
+   - Or `assets/banner.svg` for vector
+
+3. **Add to your repo:**
+   ```bash
+   mkdir assets
+   # Copy your banner image to assets folder
+   git add assets/banner.png
+   git commit -m "chore: add banner image"
+   git push
+   ```
+
+4. **Update README** - The banner placeholder is already in place at the top!
+
+### Banner Design Ideas
+
+**Text to include:**
+- 🗄️ **gitlo** - GitHub Repository Backup CLI
+- "Never lose your code"
+- "One command backup"
+
+**Colors:**
+- Background: `#0D1117` (GitHub dark) or `#161B22`
+- Text: `#FFFFFF` or `#58A6FF` (GitHub blue)
+- Accent: `#238636` (GitHub green)
 
 ## License
 
