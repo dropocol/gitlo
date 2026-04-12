@@ -1,8 +1,6 @@
-<div align="center">
+<div align="left">
 
 [![gitlo](https://raw.githubusercontent.com/dropocol/gitlo/main/banner.png)](https://github.com/dropocol/gitlo)
-
-
 
 [![npm version](https://img.shields.io/npm/v/gitlo.svg)](https://www.npmjs.com/package/gitlo)
 [![npm downloads](https://img.shields.io/npm/dm/gitlo.svg)](https://www.npmjs.com/package/gitlo)
