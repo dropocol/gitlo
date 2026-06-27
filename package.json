@@ -1,6 +1,6 @@
 {
   "name": "gitlo",
-  "version": "1.0.2",
+  "version": "1.1.1",
   "description": "CLI tool to backup all your GitHub repositories locally",
   "main": "dist/index.js",
   "bin": {
@@ -27,7 +27,7 @@
     "cli",
     "git"
   ],
-  "author": "Zeeshan Khan <dropocol@gmail.com>",
+  "author": "Zeeshan Khan <mr.xee.khan@gmail.com>",
   "license": "MIT",
   "homepage": "https://github.com/dropocol/gitlo#readme",
   "repository": {

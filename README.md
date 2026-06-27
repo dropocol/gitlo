@@ -103,7 +103,7 @@ What would you like to do?
   2. ⚙️  Configure settings (token / output directory / branch strategy)
   3. 📅  Schedule automatic backups
   4. 👀  View current configuration
-  5. ⬆️   Update gitlo
+  5. ⬆️  Update gitlo
   6. 🚪  Exit
 >
 ```
