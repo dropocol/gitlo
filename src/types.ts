@@ -5,6 +5,7 @@ export interface RepoInfo {
   isPrivate: boolean;
   description: string | null;
   updatedAt: string | null;
+  defaultBranch: string | null;
 }
 
 export interface BackupOptions {

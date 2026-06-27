@@ -1,12 +1,45 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
+import * as os from 'os';
 import { Octokit } from '@octokit/rest';
 import ora from 'ora';
 import * as path from 'path';
-import type { BackupOptions } from './types.js';
-import { readConfig, getConfig, setConfig, removeConfig, expandPath } from './config-manager.js';
+import type { BackupOptions, Config } from './types.js';
+import { readConfig, getConfig, setConfig, removeConfig, expandPath, maskToken } from './config-manager.js';
 import { fetchAllRepos, getAuthenticatedUser } from './github.js';
 import { cloneOrUpdateRepo, displayRepoList, displaySummary, ensureDirectory } from './backup.js';
+import {
+  addCronJob,
+  getCronExpression,
+  formatSchedule,
+  listCronJobs,
+  removeCronJob,
+  type CronSchedule,
+} from './cron.js';
+
+/**
+ * Maps the user-facing config key (e.g. "output-dir") to the field stored in
+ * the config file (e.g. "outputDir"). Keeps the get/set/remove commands DRY.
+ */
+const CONFIG_KEYS: Record<string, keyof Config> = {
+  token: 'githubToken',
+  'output-dir': 'outputDir',
+  outputDir: 'outputDir',
+};
+
+function resolveConfigKey(key: string): keyof Config | undefined {
+  return CONFIG_KEYS[key];
+}
+
+function assertConfigKey(key: string): keyof Config {
+  const resolved = resolveConfigKey(key);
+  if (!resolved) {
+    console.error(chalk.red(`❌ Unknown config key: ${key}`));
+    console.log(chalk.gray('Valid keys: token, output-dir'));
+    process.exit(1);
+  }
+  return resolved;
+}
 
 export function parseOptions(cmdOptions: any): BackupOptions {
   const config = readConfig();
@@ -151,12 +184,13 @@ export async function runBackup(options: BackupOptions): Promise<void> {
     displaySummary(stats, options.updateExisting, backupPath);
 
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('Bad credentials')) {
-        console.error(chalk.red('\n❌ Invalid GitHub token. Please check your token and try again.\n'));
-      } else {
-        console.error(chalk.red(`\n❌ Error: ${error.message}\n`));
-      }
+    const message = error instanceof Error
+      ? error.message
+      : typeof error === 'string' ? error : 'Unknown error';
+    if (message.includes('Bad credentials')) {
+      console.error(chalk.red('\n❌ Invalid GitHub token. Please check your token and try again.\n'));
+    } else {
+      console.error(chalk.red(`\n❌ Error: ${message}\n`));
     }
     process.exit(1);
   }
@@ -173,20 +207,11 @@ export function createConfigCommands(program: Command): void {
     .argument('<key>', 'Configuration key (token or output-dir)')
     .argument('<value>', 'Value to set')
     .action((key: string, value: string) => {
-      if (key === 'token') {
-        setConfig('githubToken', value);
-        console.log(chalk.green('✓ GitHub token saved'));
-        console.log(chalk.gray(`Config file: ~/.gitlo/config.json`));
-      } else if (key === 'output-dir' || key === 'outputDir') {
-        const expandedPath = expandPath(value);
-        setConfig('outputDir', expandedPath);
-        console.log(chalk.green('✓ Default output directory saved'));
-        console.log(chalk.gray(`Path: ${expandedPath}`));
-      } else {
-        console.error(chalk.red(`❌ Unknown config key: ${key}`));
-        console.log(chalk.gray('Valid keys: token, output-dir'));
-        process.exit(1);
-      }
+      const resolvedKey = assertConfigKey(key);
+      const storedValue = resolvedKey === 'outputDir' ? expandPath(value) : value;
+      setConfig(resolvedKey, storedValue);
+      console.log(chalk.green(resolvedKey === 'githubToken' ? '✓ GitHub token saved' : '✓ Default output directory saved'));
+      console.log(chalk.gray(`Config file: ~/.gitlo/config.json`));
     });
 
   configCmd
@@ -194,24 +219,12 @@ export function createConfigCommands(program: Command): void {
     .description('Get a configuration value')
     .argument('<key>', 'Configuration key (token or output-dir)')
     .action((key: string) => {
-      let value: string | undefined;
-      if (key === 'token') {
-        value = getConfig('githubToken');
-      } else if (key === 'output-dir' || key === 'outputDir') {
-        value = getConfig('outputDir');
-      } else {
-        console.error(chalk.red(`❌ Unknown config key: ${key}`));
-        console.log(chalk.gray('Valid keys: token, output-dir'));
-        process.exit(1);
-      }
-      
+      const resolvedKey = assertConfigKey(key);
+      const value = getConfig(resolvedKey);
+
       if (value) {
-        if (key === 'token') {
-          // Mask token for security
-          console.log(chalk.green(`${key}: ${value.substring(0, 4)}****${value.substring(value.length - 4)}`));
-        } else {
-          console.log(chalk.green(`${key}: ${value}`));
-        }
+        const display = resolvedKey === 'githubToken' ? maskToken(value) : value;
+        console.log(chalk.green(`${key}: ${display}`));
       } else {
         console.log(chalk.yellow(`${key}: not set`));
       }
@@ -222,17 +235,9 @@ export function createConfigCommands(program: Command): void {
     .description('Remove a configuration value')
     .argument('<key>', 'Configuration key (token or output-dir)')
     .action((key: string) => {
-      if (key === 'token') {
-        removeConfig('githubToken');
-        console.log(chalk.green('✓ GitHub token removed'));
-      } else if (key === 'output-dir' || key === 'outputDir') {
-        removeConfig('outputDir');
-        console.log(chalk.green('✓ Default output directory removed'));
-      } else {
-        console.error(chalk.red(`❌ Unknown config key: ${key}`));
-        console.log(chalk.gray('Valid keys: token, output-dir'));
-        process.exit(1);
-      }
+      const resolvedKey = assertConfigKey(key);
+      removeConfig(resolvedKey);
+      console.log(chalk.green(resolvedKey === 'githubToken' ? '✓ GitHub token removed' : '✓ Default output directory removed'));
     });
 
   configCmd
@@ -243,8 +248,7 @@ export function createConfigCommands(program: Command): void {
       console.log(chalk.bold('\n📋 gitlo Configuration\n'));
       
       if (config.githubToken) {
-        const masked = `${config.githubToken.substring(0, 4)}****${config.githubToken.substring(config.githubToken.length - 4)}`;
-        console.log(`  ${chalk.cyan('token')}: ${masked}`);
+        console.log(`  ${chalk.cyan('token')}: ${maskToken(config.githubToken)}`);
       } else {
         console.log(`  ${chalk.cyan('token')}: ${chalk.gray('not set')}`);
       }
@@ -273,16 +277,14 @@ export function createScheduleCommands(program: Command): void {
     .option('--full', 'Clone all repos instead of updating existing (default: update existing)', false)
     .option('-l, --log <path>', 'Log file path', '~/.gitlo/backup.log')
     .action((cmdOptions) => {
-      const { addCronJob, getCronExpression, formatSchedule } = require('./cron.js');
-
-      const schedule = {
+      const schedule: CronSchedule = {
         frequency: cmdOptions.frequency,
         time: cmdOptions.time,
         dayOfWeek: parseInt(cmdOptions.day),
         updateOnly: !cmdOptions.full,
       };
 
-      const logFile = cmdOptions.log.replace(/^~/, require('os').homedir());
+      const logFile = cmdOptions.log.replace(/^~/, os.homedir());
 
       console.log(chalk.bold.blue('\n📅 Schedule Automatic Backups\n'));
       console.log(chalk.gray(`Frequency: ${formatSchedule(schedule)}`));
@@ -304,10 +306,8 @@ export function createScheduleCommands(program: Command): void {
     .command('list')
     .description('List scheduled backup jobs')
     .action(() => {
-      const { listCronJobs } = require('./cron.js');
-      
       console.log(chalk.bold('\n📋 Scheduled Backup Jobs\n'));
-      
+
       const jobs = listCronJobs();
       if (jobs.length === 0) {
         console.log(chalk.yellow('No scheduled backups found.'));
@@ -324,10 +324,8 @@ export function createScheduleCommands(program: Command): void {
     .command('remove')
     .description('Remove scheduled backup')
     .action(() => {
-      const { removeCronJob } = require('./cron.js');
-      
       console.log(chalk.bold('\n🗑️  Remove Scheduled Backup\n'));
-      
+
       if (removeCronJob()) {
         console.log(chalk.green('✓ Scheduled backup removed successfully!\n'));
       } else {

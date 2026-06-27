@@ -3,7 +3,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import chalk from 'chalk';
-import { readConfig } from './config-manager.js';
 
 const CRON_COMMENT = '# gitlo-auto-backup';
 
@@ -17,22 +16,28 @@ export interface CronSchedule {
 
 export function getCronExpression(schedule: CronSchedule): string {
   switch (schedule.frequency) {
-    case 'hourly':
+    case 'hourly': {
       return '0 * * * *';
-    case 'daily':
+    }
+    case 'daily': {
       const [hour, minute] = (schedule.time || '02:00').split(':');
       return `${minute} ${hour} * * *`;
-    case 'weekly':
+    }
+    case 'weekly': {
       const [weekHour, weekMinute] = (schedule.time || '02:00').split(':');
       const day = schedule.dayOfWeek ?? 0;
       return `${weekMinute} ${weekHour} * * ${day}`;
-    case 'monthly':
+    }
+    case 'monthly': {
       const [monthHour, monthMinute] = (schedule.time || '02:00').split(':');
       return `${monthMinute} ${monthHour} 1 * *`;
-    case 'custom':
+    }
+    case 'custom': {
       return schedule.customExpression || '0 2 * * 0';
-    default:
+    }
+    default: {
       return '0 2 * * 0'; // Default: Sundays at 2 AM
+    }
   }
 }
 
@@ -77,12 +82,22 @@ export function addCronJob(schedule: CronSchedule, logFile?: string): boolean {
   try {
     const cronExpression = getCronExpression(schedule);
     const command = getCronCommand(schedule.updateOnly);
-    
+
+    // Validate the log file path. Cron lines are newline-delimited, so a
+    // newline in the path would inject an extra cron entry. Spaces and shell
+    // metacharacters also need quoting.
     let fullCommand = command;
     if (logFile) {
+      if (/\s/.test(logFile) && !/^['"]/.test(logFile)) {
+        // Quote paths containing whitespace.
+        logFile = `"${logFile}"`;
+      }
+      if (/[\n\r]/.test(logFile)) {
+        throw new Error('Log file path must not contain newlines');
+      }
       fullCommand += ` >> ${logFile} 2>&1`;
     }
-    
+
     const cronLine = `${cronExpression} ${fullCommand} ${CRON_COMMENT}`;
     
     // Get existing crontab

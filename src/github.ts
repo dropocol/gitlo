@@ -66,6 +66,7 @@ export async function fetchAllRepos(
         isPrivate: repo.private,
         description: repo.description,
         updatedAt: repo.updated_at,
+        defaultBranch: repo.default_branch,
       });
     }
 
@@ -91,19 +92,4 @@ export async function fetchAllRepos(
 export async function getAuthenticatedUser(octokit: Octokit): Promise<string> {
   const { data: user } = await octokit.rest.users.getAuthenticated();
   return user.login;
-}
-
-export async function getRepoStats(octokit: Octokit): Promise<{ 
-  public: number; 
-  private: number; 
-  total: number;
-  owned: number;
-}> {
-  const { data: user } = await octokit.rest.users.getAuthenticated();
-  return {
-    public: user.public_repos || 0,
-    private: user.total_private_repos || 0,
-    total: (user.public_repos || 0) + (user.total_private_repos || 0),
-    owned: 0, // Will need separate query for this
-  };
 }

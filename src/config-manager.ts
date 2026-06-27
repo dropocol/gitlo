@@ -19,9 +19,26 @@ export function readConfig(): Config {
 
 export function writeConfig(config: Config): void {
   if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
   }
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+  // Config file holds the GitHub token, so keep it owner-only (0600).
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), { mode: 0o600 });
+  try {
+    fs.chmodSync(CONFIG_FILE, 0o600);
+  } catch {
+    // Best effort; some filesystems ignore chmod.
+  }
+}
+
+export function maskToken(token: string): string {
+  if (!token) return '';
+  // Keep the readable prefix (e.g. ghp_ / github_pat_) but never leak enough
+  // to reconstruct the token. For very short values, don't duplicate content.
+  const len = token.length;
+  if (len <= 8) return '****';
+  const prefix = token.slice(0, 4);
+  const suffix = token.slice(-4);
+  return `${prefix}****${suffix}`;
 }
 
 export function getConfig(key: keyof Config): string | undefined {

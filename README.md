@@ -40,16 +40,6 @@ GitHub accounts can be deleted, suspended, or compromised. This tool creates a l
 npm install -g gitlo
 ```
 
-Or with other package managers:
-
-```bash
-# pnpm
-pnpm add -g gitlo
-
-# yarn
-yarn global add gitlo
-```
-
 ### Requirements
 
 - **Node.js** >= 18.0.0

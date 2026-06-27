@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import packageJson from '../package.json';
 import { parseOptions, runBackup, createConfigCommands, createScheduleCommands } from './cli.js';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const packageJson = require('../package.json');
 
 const program = new Command();
 
