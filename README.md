@@ -1,11 +1,11 @@
-<div align="left">
 
-[![gitlo](https://raw.githubusercontent.com/dropocol/gitlo/main/banner.png)](https://github.com/dropocol/gitlo)
 
-[![npm version](https://img.shields.io/npm/v/gitlo.svg)](https://www.npmjs.com/package/gitlo)
-[![npm downloads](https://img.shields.io/npm/dm/gitlo.svg)](https://www.npmjs.com/package/gitlo)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/node/v/gitlo)](https://nodejs.org)
+[gitlo](https://github.com/dropocol/gitlo)
+
+[npm version](https://www.npmjs.com/package/gitlo)
+[npm downloads](https://www.npmjs.com/package/gitlo)
+[License: MIT](https://opensource.org/licenses/MIT)
+[Node.js Version](https://nodejs.org)
 
 # gitlo
 
@@ -13,7 +13,7 @@
 
 Never lose your code to account deletions, suspensions, or unexpected issues.
 
-</div>
+
 
 ---
 
@@ -58,88 +58,119 @@ npm run build
 npm link --global
 ```
 
-## Getting a GitHub Token
-
-gitlo supports two types of GitHub personal access tokens:
-
-### Option 1: Classic Token (Recommended)
-
-1. Go to [https://github.com/settings/tokens](https://github.com/settings/tokens)
-2. Click "Generate new token (classic)"
-3. Select these scopes:
-  - `repo` - Full control of private repositories
-  - `read:user` - Read user profile data
-4. Generate and copy the token
-
-### Option 2: Fine-Grained Token
-
-1. Go to [https://github.com/settings/tokens](https://github.com/settings/tokens)
-2. Click "Generate new token" → "Fine-grained token"
-3. Configure permissions:
-  - **Repository permissions**: 
-    - Contents: **Read and write** (required for cloning)
-    - Metadata: **Read-only** (required for repository access)
-  - **Account permissions**:
-    - User profile: **Read-only** (optional, for user info)
-4. Select the repositories to access (or "All repositories")
-5. Generate and copy the token
-
 ## 🚀 Quick Start
 
-### 1. Get a GitHub Token
+### 1. Install gitlo
+
+```bash
+npm install -g gitlo
+```
+
+### 2. Get a GitHub Token
+
+gitlo works with either type of GitHub personal access token:
+
+**Classic token (simplest):**
 
 1. Go to [GitHub Settings → Tokens](https://github.com/settings/tokens)
-2. Click "Generate new token (classic)"
+2. Click **"Generate new token (classic)"**
 3. Select scopes: ☑️ `repo` and ☑️ `read:user`
 4. Generate and copy the token
 
-### 2. Configure gitlo (One-time setup)
+**Fine-grained token (more control):**
 
-```bash
-# Save your token
-gitlo config set token ghp_xxxxxxxxxxxx
+1. Go to [GitHub Settings → Tokens](https://github.com/settings/tokens)
+2. Click **"Generate new token" → "Fine-grained token"**
+3. Set **Repository permissions**: Contents = *Read and write*, Metadata = *Read-only*
+4. *(Optional)* **Account permissions**: User profile = *Read-only*
+5. Choose repositories (or "All repositories"), then generate and copy
 
-# Optional: Set backup directory
-gitlo config set output-dir ~/backups/github
-```
+> **Note:** Fine-grained tokens can't read GitHub's private-repo counter, so gitlo's "owned repos" total may look lower than expected. All your accessible private repos are still backed up — the number is just a display quirk.
 
-### 3. Run Backup
-
-```bash
-# Backup all your repos
-gitlo
-
-# Include forks too
-gitlo --include-forks
-
-# Setup automatic daily backups
-gitlo schedule setup --frequency daily
-```
-
-## 🎬 Interactive Mode
-
-Don't want to memorize flags? Just run `gitlo` with **no arguments** and you'll get a guided menu:
+### 3. Run gitlo (Interactive Mode — Recommended)
 
 ```bash
 gitlo
 ```
+
+That's it. With **no arguments**, gitlo opens a guided menu that walks you through everything — including setting your token on the first run:
 
 ```
 🗄️  gitlo - GitHub Backup Tool
 
 What would you like to do?
   1. 🔄  Run a backup now
-  2. ⚙️   Configure settings (token / output directory / branch strategy)
+  2. ⚙️  Configure settings (token / output directory / branch strategy)
   3. 📅  Schedule automatic backups
   4. 👀  View current configuration
   5. ⬆️   Update gitlo
   6. 🚪  Exit
-> 
+>
 ```
 
-The menu walks you through every option — token setup, output directory, clone method, forks/private filtering, dry-run, and scheduling — with sensible defaults and inline validation. It's the easiest way to use gitlo if you're not sure which flags you need.
+Pick **"Run a backup now"** and gitlo will:
 
-**Tip:** Any flag or subcommand skips the menu and behaves exactly as before. For example `gitlo --include-forks`, `gitlo config list`, and `gitlo schedule setup` all run directly without prompting.
+- Prompt for your GitHub token if you haven't set one (and save it for next time)
+- Ask your preferences (clone method, forks, private repos, dry-run, branch strategy)
+- Show a summary for confirmation, then back up everything
+
+You can return to the menu anytime to configure settings, schedule automatic backups, or update gitlo.
+
+> **First run tip:** If you haven't configured a token yet, the menu will offer to set one up when you pick "Run a backup now" — or you can configure it upfront via **"Configure settings" → "Set GitHub token"**.
+
+## 🎬 Interactive Mode
+
+The easiest way to use gitlo. Run `gitlo` with no arguments and the menu guides you through every option with sensible defaults and inline validation:
+
+- **🔄 Run a backup now** — walks through clone method, forks/private filtering, dry-run, and branch strategy, then confirms before starting
+- **⚙️ Configure settings** — set/get/remove your token, output directory, and branch strategy
+- **📅 Schedule automatic backups** — set up, list, or remove scheduled backups with a guided frequency/time/day picker
+- **👀 View current configuration** — see your current token (masked), output directory, and branch strategy
+- **⬆️ Update gitlo** — check for and install the latest version
+
+**Tip:** Any flag or subcommand skips the menu and runs directly. For example `gitlo --include-forks`, `gitlo config list`, and `gitlo schedule setup` all run without prompting.
+
+---
+
+## ⌨️ Manual Commands (Alternative)
+
+Prefer the terminal? Every option in the interactive menu is also available as a CLI command. These are for power users or scripting/automation.
+
+### One-Time Setup
+
+```bash
+# Save your token
+gitlo config set token ghp_xxxxxxxxxxxx
+
+# Optional: set backup directory and branch strategy
+gitlo config set output-dir ~/backups/github
+gitlo config set branch-strategy all
+```
+
+### Run a Backup
+
+```bash
+# Back up all your repos (syncs ALL branches by default)
+gitlo --update
+
+# Include forks too
+gitlo --include-forks
+
+# Preview without downloading
+gitlo --dry-run
+```
+
+### Schedule Automatic Backups
+
+```bash
+# Daily at 3 AM
+gitlo schedule setup --frequency daily --time 03:00
+
+# Weekly on Monday at 2 AM
+gitlo schedule setup --frequency weekly --day 1
+```
+
+> Full command reference below.
 
 ## Commands
 
@@ -202,8 +233,8 @@ gitlo [options]
 
 When a repo already exists locally and you run with `--update`, gitlo fetches all branches' history either way (nothing is lost). The **branch strategy** controls how much of that is synced into the working tree:
 
-- **`all`** (default) — Checks out and fast-forwards **every** branch so each one's files are up to date on disk. Most complete; recommended for backups since the whole point is to never lose access to your code.
-- **`default`** — Fast-forwards only the repo's default branch (e.g. `main`). Faster; useful if you have repos with many branches and only care about the main one.
+- `**all`** (default) — Checks out and fast-forwards **every** branch so each one's files are up to date on disk. Most complete; recommended for backups since the whole point is to never lose access to your code.
+- `**default`** — Fast-forwards only the repo's default branch (e.g. `main`). Faster; useful if you have repos with many branches and only care about the main one.
 
 ```bash
 # Update existing repos — syncs ALL branches by default
@@ -359,23 +390,9 @@ gitlo schedule remove
 
 ## Usage Examples
 
-### One-Time Setup (Recommended)
-
-```bash
-# Step 1: Save your token
-gitlo config set token ghp_your_token_here
-
-# Step 2: Set default backup location (optional)
-gitlo config set output-dir ~/backups/github
-
-# Step 3: Run backup anytime
-gitlo
-
-# Update existing backups
-gitlo --update
-```
-
 ### Without Config (One-Time Use)
+
+Don't want to save anything? Pass the token inline:
 
 ```bash
 # Using environment variable
@@ -404,7 +421,7 @@ gitlo --exclude-private
 # Include forks
 gitlo --include-forks
 
-# Weekly update of all existing backups
+# Update existing backups (syncs ALL branches by default)
 gitlo --update
 ```
 
