@@ -1,11 +1,11 @@
+<div align="left">
 
+[![gitlo](https://raw.githubusercontent.com/dropocol/gitlo/main/banner.png)](https://github.com/dropocol/gitlo)
 
-[gitlo](https://github.com/dropocol/gitlo)
-
-[npm version](https://www.npmjs.com/package/gitlo)
-[npm downloads](https://www.npmjs.com/package/gitlo)
-[License: MIT](https://opensource.org/licenses/MIT)
-[Node.js Version](https://nodejs.org)
+[![npm version](https://img.shields.io/npm/v/gitlo.svg)](https://www.npmjs.com/package/gitlo)
+[![npm downloads](https://img.shields.io/npm/dm/gitlo.svg)](https://www.npmjs.com/package/gitlo)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/node/v/gitlo)](https://nodejs.org)
 
 # gitlo
 
@@ -13,7 +13,7 @@
 
 Never lose your code to account deletions, suspensions, or unexpected issues.
 
-
+</div>
 
 ---
 
