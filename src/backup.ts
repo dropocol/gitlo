@@ -1,4 +1,4 @@
-import simpleGit from 'simple-git';
+import simpleGit, { SimpleGit } from 'simple-git';
 import chalk from 'chalk';
 import ora from 'ora';
 import * as fs from 'fs';
@@ -38,6 +38,33 @@ async function resetRemoteToCleanUrl(repoPath: string, cleanUrl: string): Promis
   }
 }
 
+/**
+ * Fast-forward a single branch to its remote counterpart.
+ * Creates a local tracking branch if it doesn't exist yet.
+ * Silent on failure — this is best-effort for backup completeness.
+ */
+async function fastForwardBranch(git: SimpleGit, branch: string): Promise<void> {
+  const remoteRef = `origin/${branch}`;
+  try {
+    const localBranches = await git.branchLocal();
+    if (!localBranches.all.includes(branch)) {
+      // Branch doesn't exist locally yet — create a tracking branch.
+      await git.raw(['branch', '--track', branch, remoteRef]);
+      return;
+    }
+    // Try a fast-forward pull. If it fails (diverged/non-ff), reset hard to
+    // match the remote — a backup should mirror the source of truth.
+    try {
+      await git.pull('origin', branch, { '--ff-only': null });
+    } catch {
+      await git.checkout(branch).catch(() => {});
+      await git.reset(['--hard', remoteRef]);
+    }
+  } catch {
+    // Best effort — skip branches that can't be updated.
+  }
+}
+
 export async function cloneOrUpdateRepo(
   repo: RepoInfo,
   repoPath: string,
@@ -74,30 +101,31 @@ export async function cloneOrUpdateRepo(
           needsRestore = true;
         }
 
-        // Fetch ALL branches and tags so the backup is complete, then fast-forward
-        // the default branch. We avoid guessing "main"/"master" — the API tells us
-        // the real default branch for this repo.
+        // Fetch ALL branches and tags so the backup is complete. This always
+        // runs regardless of strategy — every ref's history is always backed up.
         await git.fetch(['--all', '--tags', '--prune']);
 
-        const defaultBranch = repo.defaultBranch;
-        if (defaultBranch) {
-          // Only pull if the local default branch exists and is checked out.
-          const localBranches = await git.branchLocal();
-          if (localBranches.all.includes(defaultBranch)) {
-            try {
-              await git.pull('origin', defaultBranch, { '--ff-only': null });
-            } catch {
-              // Diverged or upstream rewound — fall back to a reset to keep the
-              // backup in sync with the remote. Non-destructive for other branches.
-              try {
-                await git.reset(['--hard', `origin/${defaultBranch}`]);
-              } catch {
-                // Leave as-is; the fetch above still updated remotes.
-              }
-            }
-          } else {
-            // Default branch isn't checked out locally; just ensure we track it.
-            await git.raw(['branch', '--track', defaultBranch, `origin/${defaultBranch}`]).catch(() => {});
+        if (options.branchStrategy === 'all') {
+          // "all" strategy: fast-forward every remote branch so each one's
+          // working tree is also materialized/updated locally.
+          const allRefs = await git.branch(['-r']);
+          const remoteBranches = (allRefs?.all || [])
+            .filter((b) => b.startsWith('origin/') && !b.includes('HEAD'))
+            .map((b) => b.replace('origin/', '').trim());
+
+          for (const branch of remoteBranches) {
+            await fastForwardBranch(git, branch);
+          }
+
+          // Leave the repo checked out on its default branch.
+          if (repo.defaultBranch) {
+            await git.checkout(repo.defaultBranch).catch(() => {});
+          }
+        } else {
+          // "default" strategy: only update the default branch's working tree.
+          const defaultBranch = repo.defaultBranch;
+          if (defaultBranch) {
+            await fastForwardBranch(git, defaultBranch);
           }
         }
       } finally {

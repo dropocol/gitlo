@@ -25,6 +25,8 @@ const CONFIG_KEYS: Record<string, keyof Config> = {
   token: 'githubToken',
   'output-dir': 'outputDir',
   outputDir: 'outputDir',
+  'branch-strategy': 'branchStrategy',
+  branchStrategy: 'branchStrategy',
 };
 
 function resolveConfigKey(key: string): keyof Config | undefined {
@@ -53,6 +55,10 @@ export function parseOptions(cmdOptions: any): BackupOptions {
     outputDir = expandPath(outputDir);
   }
   
+  // Resolve branch strategy priority: CLI arg > config file > default 'default'
+  const branchStrategyRaw = cmdOptions.branchStrategy || config.branchStrategy || 'default';
+  const branchStrategy: 'default' | 'all' = branchStrategyRaw === 'all' ? 'all' : 'default';
+
   return {
     token,
     outputDir,
@@ -62,6 +68,7 @@ export function parseOptions(cmdOptions: any): BackupOptions {
     dryRun: cmdOptions.dryRun,
     updateExisting: cmdOptions.update,
     verbose: cmdOptions.verbose,
+    branchStrategy,
   };
 }
 
@@ -98,28 +105,58 @@ export async function runBackup(options: BackupOptions): Promise<void> {
     console.log(chalk.gray(`Include private: ${options.includePrivate}`));
     console.log(chalk.gray(`Include forks: ${options.includeForks}\n`));
 
-    // Get expected repo count from user profile
+    // Get expected repo count from user profile. NOTE: GitHub's /user endpoint
+    // only returns `total_private_repos` for CLASSIC tokens with the `repo`
+    // scope. Fine-grained tokens get `undefined` here, so we detect that and
+    // avoid the misleading "you have N" comparison.
     const { data: user } = await octokit.rest.users.getAuthenticated();
     const expectedPublic = user.public_repos || 0;
-    const expectedPrivate = user.total_private_repos || 0;
+    const expectedPrivateRaw = user.total_private_repos;
+    const privateCountKnown = typeof expectedPrivateRaw === 'number';
+    const expectedPrivate = privateCountKnown ? expectedPrivateRaw : 0;
     const expectedTotal = expectedPublic + expectedPrivate;
 
     // Fetch repositories
     const reposSpinner = ora('Fetching repositories...').start();
-    const { repos, totalFetched, forksFiltered, privateFiltered, pagesFetched } = await fetchAllRepos(octokit, options);
+    const {
+      repos,
+      totalFetched,
+      forksFiltered,
+      privateFiltered,
+      pagesFetched,
+      publicCount,
+      privateCount,
+      ownerBreakdown,
+    } = await fetchAllRepos(octokit, options);
     reposSpinner.succeed(`Found ${chalk.green(repos.length)} repositories to backup`);
 
     // Show filtering details
     console.log(chalk.gray(`  Pages fetched: ${pagesFetched}`));
-    console.log(chalk.gray(`  Total from API: ${totalFetched} (GitHub says you have: ${expectedTotal})`));
-    
-    // Warn if we're not getting all repos
-    if (totalFetched < expectedTotal) {
-      console.log(chalk.yellow(`  ⚠️  Warning: Only fetched ${totalFetched} of ${expectedTotal} expected repos`));
-      console.log(chalk.yellow(`     Your token might not have 'repo' scope for private repos`));
-      console.log(chalk.yellow(`     Or some repos might be in organizations that need additional access`));
+    console.log(chalk.gray(`  Backing up: ${repos.length} (${publicCount} public, ${privateCount} private)`));
+
+    // Owner breakdown — shows whether repos are under your user or orgs.
+    const owners = Object.entries(ownerBreakdown).sort((a, b) => b[1] - a[1]);
+    if (owners.length === 1) {
+      console.log(chalk.gray(`  All under: ${owners[0][0]}`));
+    } else if (owners.length > 1) {
+      console.log(chalk.gray(`  Owners: ${owners.map(([o, n]) => `${o} (${n})`).join(', ')}`));
     }
-    
+
+    // Explain the relationship to GitHub's profile counter. When the private
+    // count is unknown (fine-grained token), say so explicitly instead of
+    // showing a misleading total.
+    if (privateCountKnown) {
+      console.log(chalk.gray(`  GitHub profile says you own: ${expectedTotal} (${expectedPublic} public, ${expectedPrivate} private)`));
+      if (totalFetched < expectedTotal) {
+        console.log(chalk.yellow(`  ⚠️  Fetched ${totalFetched} but profile expects ${expectedTotal}.`));
+        console.log(chalk.yellow(`     Your token may lack 'repo' scope, or repos are in orgs needing extra access.`));
+      }
+    } else {
+      console.log(chalk.gray(`  GitHub profile: ${expectedPublic} public repos visible`));
+      console.log(chalk.gray(`  (Private count unavailable — fine-grained tokens can't read the private-repo counter.`));
+      console.log(chalk.gray(`   All accessible private repos are still included in the backup above.)`));
+    }
+
     if (forksFiltered > 0) {
       console.log(chalk.yellow(`  Skipped forks: ${forksFiltered} (use --include-forks to backup)`));
     }
@@ -204,20 +241,34 @@ export function createConfigCommands(program: Command): void {
   configCmd
     .command('set')
     .description('Set a configuration value')
-    .argument('<key>', 'Configuration key (token or output-dir)')
+    .argument('<key>', 'Configuration key (token, output-dir, or branch-strategy)')
     .argument('<value>', 'Value to set')
     .action((key: string, value: string) => {
       const resolvedKey = assertConfigKey(key);
+
+      // Validate branch-strategy values.
+      if (resolvedKey === 'branchStrategy' && value !== 'default' && value !== 'all') {
+        console.error(chalk.red(`❌ Invalid branch-strategy: ${value}`));
+        console.log(chalk.gray('Valid values: default, all'));
+        process.exit(1);
+      }
+
       const storedValue = resolvedKey === 'outputDir' ? expandPath(value) : value;
       setConfig(resolvedKey, storedValue);
-      console.log(chalk.green(resolvedKey === 'githubToken' ? '✓ GitHub token saved' : '✓ Default output directory saved'));
+
+      const messages: Record<string, string> = {
+        githubToken: '✓ GitHub token saved',
+        outputDir: '✓ Default output directory saved',
+        branchStrategy: `✓ Branch strategy set to '${value}'`,
+      };
+      console.log(chalk.green(messages[resolvedKey]));
       console.log(chalk.gray(`Config file: ~/.gitlo/config.json`));
     });
 
   configCmd
     .command('get')
     .description('Get a configuration value')
-    .argument('<key>', 'Configuration key (token or output-dir)')
+    .argument('<key>', 'Configuration key (token, output-dir, or branch-strategy)')
     .action((key: string) => {
       const resolvedKey = assertConfigKey(key);
       const value = getConfig(resolvedKey);
@@ -233,11 +284,16 @@ export function createConfigCommands(program: Command): void {
   configCmd
     .command('remove')
     .description('Remove a configuration value')
-    .argument('<key>', 'Configuration key (token or output-dir)')
+    .argument('<key>', 'Configuration key (token, output-dir, or branch-strategy)')
     .action((key: string) => {
       const resolvedKey = assertConfigKey(key);
       removeConfig(resolvedKey);
-      console.log(chalk.green(resolvedKey === 'githubToken' ? '✓ GitHub token removed' : '✓ Default output directory removed'));
+      const messages: Record<string, string> = {
+        githubToken: '✓ GitHub token removed',
+        outputDir: '✓ Default output directory removed',
+        branchStrategy: '✓ Branch strategy reset to default',
+      };
+      console.log(chalk.green(messages[resolvedKey]));
     });
 
   configCmd
@@ -258,6 +314,8 @@ export function createConfigCommands(program: Command): void {
       } else {
         console.log(`  ${chalk.cyan('output-dir')}: ${chalk.gray('not set')}`);
       }
+
+      console.log(`  ${chalk.cyan('branch-strategy')}: ${config.branchStrategy || chalk.gray('default')}`);
       
       console.log(chalk.gray(`\nConfig file: ~/.gitlo/config.json\n`));
     });

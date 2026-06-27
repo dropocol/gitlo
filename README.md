@@ -116,6 +116,31 @@ gitlo --include-forks
 gitlo schedule setup --frequency daily
 ```
 
+## 🎬 Interactive Mode
+
+Don't want to memorize flags? Just run `gitlo` with **no arguments** and you'll get a guided menu:
+
+```bash
+gitlo
+```
+
+```
+🗄️  gitlo - GitHub Backup Tool
+
+What would you like to do?
+  1. 🔄  Run a backup now
+  2. ⚙️   Configure settings (token / output directory / branch strategy)
+  3. 📅  Schedule automatic backups
+  4. 👀  View current configuration
+  5. ⬆️   Update gitlo
+  6. 🚪  Exit
+> 
+```
+
+The menu walks you through every option — token setup, output directory, clone method, forks/private filtering, dry-run, and scheduling — with sensible defaults and inline validation. It's the easiest way to use gitlo if you're not sure which flags you need.
+
+**Tip:** Any flag or subcommand skips the menu and behaves exactly as before. For example `gitlo --include-forks`, `gitlo config list`, and `gitlo schedule setup` all run directly without prompting.
+
 ## Commands
 
 ### `gitlo`
@@ -124,11 +149,31 @@ Run the backup with configured settings.
 
 ### `gitlo config`
 
-Manage gitlo configuration settings (token, output directory).
+Manage gitlo configuration settings (token, output directory, branch strategy).
 
 ### `gitlo schedule`
 
 Schedule automatic backups with cron (built-in scheduler).
+
+### `gitlo update`
+
+Update gitlo to the latest version from npm. Runs `npm install -g gitlo@latest` for you.
+
+## 🔄 Updating gitlo
+
+gitlo automatically checks for new versions in the background (at most once per day) and shows a banner when an update is available. You'll never be left on an outdated version without knowing it.
+
+```bash
+# Update to the latest version
+gitlo update
+
+# Or manually
+npm install -g gitlo@latest
+```
+
+You can also update from the interactive menu — run `gitlo` (no args) and choose **"⬆️ Update gitlo"**.
+
+> The update check is non-blocking, cached daily, and only displays in an interactive terminal (never in CI/scripts). It queries the public npm registry directly — no new dependencies.
 
 ## All Commands & Options
 
@@ -148,8 +193,30 @@ gitlo [options]
 - `--include-forks` - Include forked repositories (default: false)
 - `--dry-run` - Show what would be backed up without cloning
 - `--update` - Update existing repositories with git pull
+- `-b, --branch-strategy <strategy>` - When updating: `default` (sync default branch only) or `all` (sync every branch). (default: default)
 - `-v, --verbose` - Show detailed progress and filtering information
+- `-V, --version` - Display the installed gitlo version
 - `-h, --help` - Display help
+
+### 🌿 Branch Strategy
+
+When a repo already exists locally and you run with `--update`, gitlo fetches all branches' history either way (nothing is lost). The **branch strategy** controls how much of that is synced into the working tree:
+
+- **`default`** (default) — Fast-forwards only the repo's default branch (e.g. `main`). Fastest.
+- **`all`** — Checks out and fast-forwards **every** branch so each one's files are up to date on disk. Most complete; slower for repos with many branches.
+
+```bash
+# Update existing repos, syncing only the default branch
+gitlo --update
+
+# Update existing repos, syncing ALL branches
+gitlo --update --branch-strategy all
+
+# Set it permanently via config
+gitlo config set branch-strategy all
+```
+
+> **First-time clones** always fetch every branch and the full history, regardless of strategy. The strategy only affects how existing repos are *updated*.
 
 ### ⚠️ Important: Forks Are Excluded by Default
 
@@ -172,6 +239,7 @@ Set a configuration value.
 ```bash
 gitlo config set token <github-token>
 gitlo config set output-dir <path>
+gitlo config set branch-strategy <default|all>
 ```
 
 **Examples:**
@@ -185,6 +253,9 @@ gitlo config set output-dir ~/backups/github-repos
 
 # Use ~ for home directory (automatically expanded)
 gitlo config set output-dir ~/Documents/GitHub-Backups
+
+# Set branch strategy for updating existing repos
+gitlo config set branch-strategy all
 ```
 
 #### `gitlo config get`
@@ -194,12 +265,14 @@ View a specific configuration value.
 ```bash
 gitlo config get token
 gitlo config get output-dir
+gitlo config get branch-strategy
 ```
 
 **Output:**
 
 - Token is masked for security (shows: `ghp_****xxxx`)
 - Output-dir shows the full path
+- Branch-strategy shows `default` or `all`
 
 #### `gitlo config list`
 
@@ -216,6 +289,7 @@ gitlo config list
 
   token: ghp_****xxxx
   output-dir: /Users/username/backups/github-repos
+  branch-strategy: all
 
 Config file: /Users/username/.gitlo/config.json
 ```
@@ -227,6 +301,7 @@ Remove a configuration value.
 ```bash
 gitlo config remove token
 gitlo config remove output-dir
+gitlo config remove branch-strategy   # resets to default
 ```
 
 ### Schedule Commands

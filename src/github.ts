@@ -8,6 +8,10 @@ interface FetchResult {
   forksFiltered: number;
   privateFiltered: number;
   pagesFetched: number;
+  // Breakdown for clearer logging in the UI.
+  publicCount: number;      // public repos that passed filtering
+  privateCount: number;     // private repos that passed filtering
+  ownerBreakdown: Record<string, number>; // owner login -> count of repos fetched
 }
 
 export async function fetchAllRepos(
@@ -21,6 +25,9 @@ export async function fetchAllRepos(
   let forksFiltered = 0;
   let privateFiltered = 0;
   let pagesFetched = 0;
+  let publicCount = 0;
+  let privateCount = 0;
+  const ownerBreakdown: Record<string, number> = {};
 
   while (true) {
     const { data, headers } = await octokit.rest.repos.listForAuthenticatedUser({
@@ -41,6 +48,9 @@ export async function fetchAllRepos(
     }
 
     for (const repo of data) {
+      const owner = repo.owner?.login || 'unknown';
+      ownerBreakdown[owner] = (ownerBreakdown[owner] || 0) + 1;
+
       // Skip forks if not included
       if (repo.fork && !options.includeForks) {
         forksFiltered++;
@@ -57,6 +67,12 @@ export async function fetchAllRepos(
           console.log(chalk.gray(`    - Skipping private: ${repo.name}`));
         }
         continue;
+      }
+
+      if (repo.private) {
+        privateCount++;
+      } else {
+        publicCount++;
       }
 
       repos.push({
@@ -86,6 +102,9 @@ export async function fetchAllRepos(
     forksFiltered,
     privateFiltered,
     pagesFetched,
+    publicCount,
+    privateCount,
+    ownerBreakdown,
   };
 }
 
