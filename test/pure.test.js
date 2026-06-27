@@ -269,8 +269,8 @@ test('migrateConfig: adds configVersion to an unversioned config', () => {
     // Preserves existing values.
     assert.equal(after.githubToken, 'ghp_test');
     assert.equal(after.outputDir, '/tmp/x');
-    // Defaults branchStrategy to 'default' when absent.
-    assert.equal(after.branchStrategy, 'default');
+    // Defaults branchStrategy to 'all' (safer for a backup tool).
+    assert.equal(after.branchStrategy, 'all');
   });
 });
 

@@ -193,7 +193,7 @@ gitlo [options]
 - `--include-forks` - Include forked repositories (default: false)
 - `--dry-run` - Show what would be backed up without cloning
 - `--update` - Update existing repositories with git pull
-- `-b, --branch-strategy <strategy>` - When updating: `default` (sync default branch only) or `all` (sync every branch). (default: default)
+- `-b, --branch-strategy <strategy>` - When updating: `default` (sync default branch only) or `all` (sync every branch). (default: all)
 - `-v, --verbose` - Show detailed progress and filtering information
 - `-V, --version` - Display the installed gitlo version
 - `-h, --help` - Display help
@@ -202,15 +202,15 @@ gitlo [options]
 
 When a repo already exists locally and you run with `--update`, gitlo fetches all branches' history either way (nothing is lost). The **branch strategy** controls how much of that is synced into the working tree:
 
-- **`default`** (default) — Fast-forwards only the repo's default branch (e.g. `main`). Fastest.
-- **`all`** — Checks out and fast-forwards **every** branch so each one's files are up to date on disk. Most complete; slower for repos with many branches.
+- **`all`** (default) — Checks out and fast-forwards **every** branch so each one's files are up to date on disk. Most complete; recommended for backups since the whole point is to never lose access to your code.
+- **`default`** — Fast-forwards only the repo's default branch (e.g. `main`). Faster; useful if you have repos with many branches and only care about the main one.
 
 ```bash
-# Update existing repos, syncing only the default branch
+# Update existing repos — syncs ALL branches by default
 gitlo --update
 
-# Update existing repos, syncing ALL branches
-gitlo --update --branch-strategy all
+# Sync only the default branch (faster)
+gitlo --update --branch-strategy default
 
 # Set it permanently via config
 gitlo config set branch-strategy all

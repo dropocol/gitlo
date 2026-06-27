@@ -55,9 +55,11 @@ export function parseOptions(cmdOptions: any): BackupOptions {
     outputDir = expandPath(outputDir);
   }
   
-  // Resolve branch strategy priority: CLI arg > config file > default 'default'
-  const branchStrategyRaw = cmdOptions.branchStrategy || config.branchStrategy || 'default';
-  const branchStrategy: 'default' | 'all' = branchStrategyRaw === 'all' ? 'all' : 'default';
+  // Resolve branch strategy priority: CLI arg > config file > default 'all'.
+  // 'all' is the default because a backup tool's purpose is to protect against
+  // account/repo loss — syncing every branch is the safer default.
+  const branchStrategyRaw = cmdOptions.branchStrategy || config.branchStrategy || 'all';
+  const branchStrategy: 'default' | 'all' = branchStrategyRaw === 'default' ? 'default' : 'all';
 
   return {
     token,
@@ -315,7 +317,7 @@ export function createConfigCommands(program: Command): void {
         console.log(`  ${chalk.cyan('output-dir')}: ${chalk.gray('not set')}`);
       }
 
-      console.log(`  ${chalk.cyan('branch-strategy')}: ${config.branchStrategy || chalk.gray('default')}`);
+      console.log(`  ${chalk.cyan('branch-strategy')}: ${config.branchStrategy || chalk.gray('all')}`);
       
       console.log(chalk.gray(`\nConfig file: ~/.gitlo/config.json\n`));
     });

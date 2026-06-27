@@ -58,7 +58,7 @@ program
   .option('--include-forks', 'Include forked repositories', false)
   .option('--dry-run', 'Show what would be backed up without cloning')
   .option('--update', 'Update existing repositories (git pull)', false)
-  .option('-b, --branch-strategy <strategy>', 'Branch strategy: default (default branch) or all (every branch)', 'default')
+  .option('-b, --branch-strategy <strategy>', 'Branch strategy: default (default branch) or all (every branch)', 'all')
   .option('-v, --verbose', 'Show detailed progress and filtering information', false)
   .action(async (options: any) => {
     // Run config + cron migrations first so the environment is current before

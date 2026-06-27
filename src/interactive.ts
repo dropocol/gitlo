@@ -213,11 +213,11 @@ async function actionRunBackup(): Promise<void> {
   if (updateExisting === null) return;
 
   // Branch strategy only matters when updating existing repos.
-  let branchStrategy: 'default' | 'all' = config.branchStrategy || 'default';
+  let branchStrategy: 'default' | 'all' = config.branchStrategy || 'all';
   if (updateExisting) {
     const strategyChoice = await select<'default' | 'all'>('When updating, which branches should be synced?', [
+      { label: 'All branches — checkout & update every branch (Recommended)', value: 'all' },
       { label: 'Default branch only (faster)', value: 'default' },
-      { label: 'All branches — checkout & update every branch (most complete)', value: 'all' },
     ]);
     if (strategyChoice === null) return;
     branchStrategy = strategyChoice;
@@ -313,12 +313,12 @@ async function actionConfigure(): Promise<void> {
       break;
     }
     case 'set-strategy': {
-      const current = readConfig().branchStrategy || 'default';
+      const current = readConfig().branchStrategy || 'all';
       const strategy = await select<'default' | 'all'>(
         `Branch strategy for updating existing repos (current: ${current})?`,
         [
+          { label: 'all — checkout & sync every branch (Recommended)', value: 'all' },
           { label: 'default — sync only the default branch (faster)', value: 'default' },
-          { label: 'all — checkout & sync every branch (most complete)', value: 'all' },
         ]
       );
       if (strategy === null) return;
@@ -499,7 +499,7 @@ async function actionViewConfig(): Promise<void> {
     console.log(`  ${chalk.cyan('output-dir')}: ${chalk.gray('not set')}`);
   }
 
-  console.log(`  ${chalk.cyan('branch-strategy')}: ${config.branchStrategy || chalk.gray('default')}`);
+  console.log(`  ${chalk.cyan('branch-strategy')}: ${config.branchStrategy || chalk.gray('all')}`);
 
   console.log(chalk.gray('\nConfig file: ~/.gitlo/config.json\n'));
 }

@@ -65,11 +65,11 @@ export function migrateConfig(): boolean {
   const before = JSON.stringify(data);
 
   // --- Initial migration (unversioned → v1) --------------------------------
-  // Ensure branchStrategy exists with a safe default. We intentionally do NOT
-  // force 'all' here — that's the user's choice; the safe neutral default is
-  // 'default'. The cron migration handles scheduled backups separately.
+  // Ensure branchStrategy exists with a safe default. The default is 'all'
+  // because the purpose of a backup tool is to protect against account/repo
+  // loss — syncing every branch is the safer choice.
   if (!data.branchStrategy) {
-    data.branchStrategy = 'default';
+    data.branchStrategy = 'all';
   }
   data.configVersion = 1;
 
