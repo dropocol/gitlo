@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import chalk from 'chalk';
 
-const CRON_COMMENT = '# gitlo-auto-backup';
+export const CRON_COMMENT = '# gitlo-auto-backup';
 
 export interface CronSchedule {
   frequency: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -55,9 +55,63 @@ export function getCronCommand(updateOnly = false): string {
   // Add update flag if specified
   if (updateOnly) {
     command += ' --update';
+    // Scheduled backups always sync EVERY branch so a scheduled run is a
+    // complete backup. (Without this, only the default branch's working tree
+    // would be updated, even though all branch data is fetched.)
+    command += ' --branch-strategy all';
   }
 
   return command;
+}
+
+export interface ParsedCronLine {
+  schedule: string;   // the 5-field cron expression
+  command: string;    // everything between the schedule and the redirect/comment
+  logPath: string | null; // the path in ">> <path> 2>&1", if present
+  comment: string;    // trailing comment, e.g. "# gitlo-auto-backup"
+}
+
+/**
+ * Parse a crontab line into its structural parts. Pure function — no I/O.
+ * Returns null if the line is malformed (e.g. fewer than 6 whitespace fields).
+ *
+ * Example input:
+ *   "45 19 * * * /usr/bin/node /path/index.js --update >> /x.log 2>&1 # gitlo-auto-backup"
+ * Produces:
+ *   { schedule: "45 19 * * *",
+ *     command:  "/usr/bin/node /path/index.js --update",
+ *     logPath:  "/x.log",
+ *     comment:  "# gitlo-auto-backup" }
+ */
+export function parseCronLine(line: string): ParsedCronLine | null {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('#')) return null;
+
+  // First 5 whitespace-separated tokens are the schedule.
+  const parts = trimmed.split(/\s+/);
+  if (parts.length < 6) return null;
+  const schedule = parts.slice(0, 5).join(' ');
+
+  // The remainder is command + optional redirect + optional comment.
+  let rest = parts.slice(5).join(' ');
+
+  // Extract trailing comment (everything after the first ' #').
+  let comment = '';
+  const commentMatch = rest.match(/\s+#\s*.+$/);
+  if (commentMatch) {
+    comment = commentMatch[0].trim();
+    rest = rest.slice(0, commentMatch.index).trim();
+  }
+
+  // Extract log redirect ">> <path> 2>&1" (path may be quoted).
+  let logPath: string | null = null;
+  const logMatch = rest.match(/>>\s+("?'?[^&]+?"?'?)\s+2>&1/);
+  if (logMatch) {
+    logPath = logMatch[1].replace(/^["']|["']$/g, '').trim();
+    rest = rest.slice(0, logMatch.index).trim();
+  }
+
+  return { schedule, command: rest.trim(), logPath, comment };
 }
 
 export function listCronJobs(): string[] {

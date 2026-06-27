@@ -3,8 +3,8 @@ import * as path from 'path';
 import * as os from 'os';
 import type { Config } from './types.js';
 
-const CONFIG_DIR = path.join(os.homedir(), '.gitlo');
-const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
+export const CONFIG_DIR = path.join(os.homedir(), '.gitlo');
+export const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
 export function readConfig(): Config {
   try {
@@ -42,12 +42,14 @@ export function maskToken(token: string): string {
 }
 
 export function getConfig(key: keyof Config): string | undefined {
-  return readConfig()[key];
+  const value = readConfig()[key];
+  // configVersion is numeric, but getConfig is only used for string-valued keys.
+  return typeof value === 'string' ? value : undefined;
 }
 
 export function setConfig(key: keyof Config, value: string): void {
   const config = readConfig();
-  config[key] = value;
+  (config as Record<string, unknown>)[key] = value;
   writeConfig(config);
 }
 
